@@ -6,7 +6,7 @@ import { dockApps } from '#constants/index.js';
 import useWindowStore from '#store/window';
 
 const Dock = () => {
-    const { openWindow, closeWindow, windows} = useWindowStore();
+    const { openWindow, minimizeWindow, restoreWindow, windows} = useWindowStore();
     const dockRef = useRef(null);
 
     useGSAP(() => {
@@ -57,7 +57,13 @@ const Dock = () => {
         const window = windows[app.id];
 
         if(window.isOpen){
-            closeWindow(app.id);
+            if(window.isMinimized){
+                // Restore minimized window
+                restoreWindow(app.id);
+            } else {
+                // Minimize window if it's open and not minimized
+                minimizeWindow(app.id);
+            }
         }else {
             openWindow(app.id);
         }
@@ -66,27 +72,33 @@ const Dock = () => {
     return (
         <section id="dock">
             <div ref={dockRef} className="dock-container">
-                {dockApps.map((app) => (
-                    <div key={app.id} className="relative flex justify-center">
-                        <button
-                            type="button"
-                            className="dock-icon"
-                            aria-label={app.name}
-                            data-tooltip-id='dock-tooltip'
-                            data-tooltip-content={app.name}
-                            data-tooltip-delay-show={150}
-                            disabled={!app.canOpen}
-                            onClick={() => toggleApp(app)}
-                        >
-                            <img
-                                src={`/images/${app.icon}`}
-                                alt={app.name}
-                                loading="lazy"
-                                className={app.canOpen ? '' : 'opacity-60'}
-                            />
-                        </button>
-                    </div>
-                ))}
+                {dockApps.map((app) => {
+                    const window = windows[app.id];
+                    const isWindowOpen = window?.isOpen || false;
+                    const isActive = isWindowOpen; // Active if window is open (including minimized)
+                    
+                    return (
+                        <div key={app.id} className="relative flex justify-center">
+                            <button
+                                type="button"
+                                className={`dock-icon ${isActive ? 'dock-icon-active' : ''}`}
+                                aria-label={app.name}
+                                data-tooltip-id='dock-tooltip'
+                                data-tooltip-content={app.name}
+                                data-tooltip-delay-show={150}
+                                disabled={!app.canOpen}
+                                onClick={() => toggleApp(app)}
+                            >
+                                <img
+                                    src={`/images/${app.icon}`}
+                                    alt={app.name}
+                                    loading="lazy"
+                                    className={app.canOpen ? '' : 'opacity-60'}
+                                />
+                            </button>
+                        </div>
+                    );
+                })}
                 <Tooltip id="dock-tooltip" place="top" className="tooltip"/>
             </div>
         </section>
