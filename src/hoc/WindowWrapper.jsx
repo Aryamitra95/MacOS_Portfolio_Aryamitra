@@ -8,8 +8,17 @@ const WindowWrapper = (Component, windowKey) => {
     const Wrapped = (props) => {
         const { focusWindow, windows } = useWindowStore();
         const { isOpen, zIndex, isMinimized, isMaximized } = windows[windowKey];
-        const [originalPosition, setOriginalPosition] = useState({ x: 0, y: 0, width: '', height: '', transform: '', saved: false });
+        const [originalPosition, setOriginalPosition] = useState({
+            top: '',
+            left: '',
+            width: '',
+            height: '',
+            position: '',
+            transform: '',
+            saved: false,
+        });
         const draggableInstanceRef = useRef(null);
+        const prevIsMinimizedRef = useRef(isMinimized);
 
         const ref = useRef(null);
         
@@ -38,6 +47,9 @@ const WindowWrapper = (Component, windowKey) => {
         useLayoutEffect(()=>{
             const el = ref.current;
             if(!el) return;
+
+            const wasMinimized = prevIsMinimizedRef.current;
+            prevIsMinimizedRef.current = isMinimized;
             
             if (!isOpen) {
                 el.style.display = "none";
@@ -50,19 +62,31 @@ const WindowWrapper = (Component, windowKey) => {
             }
             
             el.style.display = "block";
+
+            // When restoring from minimized (and not maximized), reset to CSS-defined position
+            if (!isMaximized && wasMinimized && !isMinimized) {
+                el.style.removeProperty('transform');
+                el.style.removeProperty('top');
+                el.style.removeProperty('left');
+
+                if (draggableInstanceRef.current) {
+                    draggableInstanceRef.current.update(true);
+                }
+            }
             
             if (isMaximized) {
                 // Store original position before maximizing (only once)
                 if (!originalPosition.saved) {
-                    const rect = el.getBoundingClientRect();
                     const computedStyle = window.getComputedStyle(el);
                     setOriginalPosition({
-                        x: rect.left,
-                        y: rect.top,
+                        top: el.style.top || '',
+                        left: el.style.left || '',
                         width: el.style.width || computedStyle.width,
                         height: el.style.height || computedStyle.height,
+                        position: el.style.position || '',
+                        // Prefer inline transform (GSAP/Draggable writes inline transforms)
                         transform: el.style.transform || computedStyle.transform || 'none',
-                        saved: true
+                        saved: true,
                     });
                 }
                 
@@ -97,14 +121,34 @@ const WindowWrapper = (Component, windowKey) => {
                     el.style.removeProperty('transform');
                     el.style.removeProperty('max-width');
                     el.style.removeProperty('max-height');
+                  
+                    // Re-apply saved inline styles so the window returns exactly where it was
+                    if (originalPosition.position) el.style.position = originalPosition.position;
+                    if (originalPosition.top) el.style.top = originalPosition.top;
+                    if (originalPosition.left) el.style.left = originalPosition.left;
+                    if (originalPosition.width) el.style.width = originalPosition.width;
+                    if (originalPosition.height) el.style.height = originalPosition.height;
+                    if (originalPosition.transform && originalPosition.transform !== 'none') {
+                        el.style.transform = originalPosition.transform;
+                    }
                     
                     // Re-enable dragging when not maximized
                     if (draggableInstanceRef.current) {
                         draggableInstanceRef.current.enable();
+                        // Ensure Draggable re-syncs to the restored transform/position
+                        draggableInstanceRef.current.update(true);
                     }
                     
                     // Reset original position tracking when unmaximizing
-                    setOriginalPosition({ x: 0, y: 0, width: '', height: '', transform: '', saved: false });
+                    setOriginalPosition({
+                        top: '',
+                        left: '',
+                        width: '',
+                        height: '',
+                        position: '',
+                        transform: '',
+                        saved: false,
+                    });
                 }
             }
         }, [isOpen, isMinimized, isMaximized, originalPosition]);
