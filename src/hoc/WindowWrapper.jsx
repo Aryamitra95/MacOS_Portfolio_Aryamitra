@@ -21,11 +21,11 @@ const WindowWrapper = (Component, windowKey) => {
         const prevIsMinimizedRef = useRef(isMinimized);
 
         const ref = useRef(null);
-        
+
         useGSAP(()=>{
             const el = ref.current;
             if(!el || !isOpen || isMinimized) return;
-            
+
             el.style.display = 'block';
             gsap.fromTo(el, { scale: 0.8, opacity: 0, y: 40}, { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "power3.out"},);
         }, [isOpen, isMinimized]);
@@ -38,7 +38,7 @@ const WindowWrapper = (Component, windowKey) => {
                 onPress: () => focusWindow(windowKey),
                 bounds: window,
             });
-            
+
             draggableInstanceRef.current = instance;
 
             return () => instance.kill();
@@ -50,31 +50,48 @@ const WindowWrapper = (Component, windowKey) => {
 
             const wasMinimized = prevIsMinimizedRef.current;
             prevIsMinimizedRef.current = isMinimized;
-            
+
             if (!isOpen) {
                 el.style.display = "none";
                 return;
             }
-            
+
             if (isMinimized) {
                 el.style.display = "none";
                 return;
             }
-            
+
             el.style.display = "block";
 
-            // When restoring from minimized (and not maximized), Safari should reset to CSS-defined position
-            // (Other windows should behave like normal windows and keep their last dragged position.)
-            if (windowKey === 'safari' && !isMaximized && wasMinimized && !isMinimized) {
-                el.style.removeProperty('transform');
-                el.style.removeProperty('top');
-                el.style.removeProperty('left');
+            // When restoring from minimized (and not maximized), center the window
+            if (!isMaximized && wasMinimized && !isMinimized) {
+                // For Safari, reset to CSS-defined position
+                if (windowKey === 'safari') {
+                    el.style.removeProperty('transform');
+                    el.style.removeProperty('top');
+                    el.style.removeProperty('left');
+                } else {
+                    // For other windows, center them on the screen
+                    const windowWidth = el.offsetWidth;
+                    const windowHeight = el.offsetHeight;
+                    const screenWidth = window.innerWidth;
+                    const screenHeight = window.innerHeight;
+
+                    // Calculate center position
+                    const centerX = (screenWidth - windowWidth) / 2;
+                    const centerY = (screenHeight - windowHeight) / 2;
+
+                    // Apply centered position
+                    el.style.transform = 'none';
+                    el.style.top = `${centerY}px`;
+                    el.style.left = `${centerX}px`;
+                }
 
                 if (draggableInstanceRef.current) {
                     draggableInstanceRef.current.update(true);
                 }
             }
-            
+
             if (isMaximized) {
                 // Store original position before maximizing (only once)
                 if (!originalPosition.saved) {
@@ -90,7 +107,7 @@ const WindowWrapper = (Component, windowKey) => {
                         saved: true,
                     });
                 }
-                
+
                 // Maximize behavior - default: full viewport
                 el.style.setProperty('position', 'fixed', 'important');
                 el.style.setProperty('margin', '0', 'important');
@@ -103,7 +120,7 @@ const WindowWrapper = (Component, windowKey) => {
                 el.style.setProperty('width', '100vw', 'important');
                 el.style.setProperty('height', '100vh', 'important');
                 el.style.setProperty('transform', 'none', 'important');
-                
+
                 // Disable dragging when maximized
                 if (draggableInstanceRef.current) {
                     draggableInstanceRef.current.disable();
@@ -122,7 +139,7 @@ const WindowWrapper = (Component, windowKey) => {
                     el.style.removeProperty('transform');
                     el.style.removeProperty('max-width');
                     el.style.removeProperty('max-height');
-                  
+
                     // Re-apply saved inline styles so the window returns exactly where it was
                     if (originalPosition.position) el.style.position = originalPosition.position;
                     if (originalPosition.top) el.style.top = originalPosition.top;
@@ -132,14 +149,14 @@ const WindowWrapper = (Component, windowKey) => {
                     if (originalPosition.transform && originalPosition.transform !== 'none') {
                         el.style.transform = originalPosition.transform;
                     }
-                    
+
                     // Re-enable dragging when not maximized
                     if (draggableInstanceRef.current) {
                         draggableInstanceRef.current.enable();
                         // Ensure Draggable re-syncs to the restored transform/position
                         draggableInstanceRef.current.update(true);
                     }
-                    
+
                     // Reset original position tracking when unmaximizing
                     setOriginalPosition({
                         top: '',
@@ -158,7 +175,7 @@ const WindowWrapper = (Component, windowKey) => {
         <section 
         id={windowKey} 
         ref = {ref} 
-        style={{zIndex}}
+        style={{zIndex, display: !isOpen ? 'none' : undefined}}
         className='absolute'
         >
             <Component{...props}/>

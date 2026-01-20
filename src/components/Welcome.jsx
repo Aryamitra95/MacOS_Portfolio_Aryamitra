@@ -45,14 +45,24 @@ const setupTextHover = (container, type) => {
 
     container.addEventListener("mousemove", handleMouseMove);
     container.addEventListener("mouseleave", handleMouseLeave);
+    
+    // Return cleanup function
+    return () => {
+        container.removeEventListener("mousemove", handleMouseMove);
+        container.removeEventListener("mouseleave", handleMouseLeave);
+    };
 }
 const Welcome = () => {
     const titleRef = useRef(null);
     const subtitleRef = useRef(null);
     useGSAP(()=> {
-         setupTextHover(titleRef.current, "title");
-         setupTextHover(subtitleRef.current, "subtitle");
-
+         const cleanupTitle = setupTextHover(titleRef.current, "title");
+         const cleanupSubtitle = setupTextHover(subtitleRef.current, "subtitle");
+         
+         return () => {
+             cleanupTitle?.();
+             cleanupSubtitle?.();
+         };
         },[]);
     return <section id="welcome">
         <p ref={subtitleRef}>
