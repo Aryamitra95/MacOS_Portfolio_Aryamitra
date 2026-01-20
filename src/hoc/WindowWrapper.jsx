@@ -63,8 +63,9 @@ const WindowWrapper = (Component, windowKey) => {
             
             el.style.display = "block";
 
-            // When restoring from minimized (and not maximized), reset to CSS-defined position
-            if (!isMaximized && wasMinimized && !isMinimized) {
+            // When restoring from minimized (and not maximized), Safari should reset to CSS-defined position
+            // (Other windows should behave like normal windows and keep their last dragged position.)
+            if (windowKey === 'safari' && !isMaximized && wasMinimized && !isMinimized) {
                 el.style.removeProperty('transform');
                 el.style.removeProperty('top');
                 el.style.removeProperty('left');
@@ -90,18 +91,18 @@ const WindowWrapper = (Component, windowKey) => {
                     });
                 }
                 
-                // Maximize: full viewport with proper centering
+                // Maximize behavior - default: full viewport
                 el.style.setProperty('position', 'fixed', 'important');
+                el.style.setProperty('margin', '0', 'important');
+                el.style.setProperty('max-width', 'none', 'important');
+                el.style.setProperty('max-height', 'none', 'important');
                 el.style.setProperty('top', '0', 'important');
                 el.style.setProperty('left', '0', 'important');
                 el.style.setProperty('right', '0', 'important');
                 el.style.setProperty('bottom', '0', 'important');
                 el.style.setProperty('width', '100vw', 'important');
                 el.style.setProperty('height', '100vh', 'important');
-                el.style.setProperty('margin', '0', 'important');
                 el.style.setProperty('transform', 'none', 'important');
-                el.style.setProperty('max-width', 'none', 'important');
-                el.style.setProperty('max-height', 'none', 'important');
                 
                 // Disable dragging when maximized
                 if (draggableInstanceRef.current) {

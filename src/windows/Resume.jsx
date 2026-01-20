@@ -20,9 +20,13 @@ const Resume = () => {
                     <DownloadIcon className='icon'/>
                 </a>
         </div>
-        <Document file="files/resume.pdf">
-        <Page pageNumber={1} renderTextLayer renderAnnotationLayer />
-      </Document>
+        <div className="resume-body">
+          <div className="resume-inner">
+            <Document file="files/resume.pdf">
+              <Page pageNumber={1} renderTextLayer renderAnnotationLayer />
+            </Document>
+          </div>
+        </div>
     </>
     
   )
