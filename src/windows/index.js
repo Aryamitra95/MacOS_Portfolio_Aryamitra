@@ -4,4 +4,6 @@ export { default as Resume } from './Resume';
 export { default as Finder } from './Finder';
 export { default as Text } from './Text';
 export { default as Image } from './Image';
-export {default as Contact} from './Contact';
+export { default as Contact } from './Contact';
+export { default as Gallery } from './Gallery';
+export { default as Archive } from './Archive';
